@@ -26,7 +26,8 @@ from utility.util import compare
 from utility.util import sorted_key
 
 def cmp(a, b):
-    return (a > b) - (a < b) 
+    return (a > b) - (a < b)
+
 
 class PmicObj(ModuleObj):
     def __init__(self):
@@ -150,6 +151,8 @@ class PmicObj(ModuleObj):
 
     def fill_dtsiFile(self):
         gen_str = ''
+        if len(ModuleObj.get_data(self).keys()) == 0:
+            return ''
 
         for key in sorted_key(ModuleObj.get_data(self).keys()):
             value = ModuleObj.get_data(self)[key]
@@ -232,6 +235,8 @@ class PmicObj_MT6758(PmicObj):
 
     def fill_dtsiFile(self):
         gen_str = ''
+        if len(ModuleObj.get_data(self).keys()) ==0:
+            return ''
 
         for key in sorted_key(ModuleObj.get_data(self).keys()):
             value = ModuleObj.get_data(self)[key]

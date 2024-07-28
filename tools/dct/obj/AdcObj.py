@@ -14,7 +14,6 @@
 
 import os
 import re
-import string
 import xml.dom.minidom
 
 from obj.ModuleObj import ModuleObj
@@ -67,39 +66,46 @@ class AdcObj(ModuleObj):
         return gen_str
 
     def fill_dtsiFile(self):
+        if len(ModuleObj.get_data(self).keys()) == 0:
+            return ''
         gen_str = '''&auxadc {\n'''
         gen_str += '''\tadc_channel@ {\n'''
         gen_str += '''\t\tcompatible = "mediatek,adc_channel";\n'''
 
+        val = -1
+
         # sort by the key, or the sequence is dissorted
-        sorted_list = sorted_key(ModuleObj.get_data(self).keys())
-        for key in sorted_list:
+        #sorted_list = sorted(ModuleObj.get_data(self).keys())
+        for key in sorted_key(ModuleObj.get_data(self).keys()):
             value = ModuleObj.get_data(self)[key]
 
             if value == "TEMPERATURE":
                 gen_str += '''\t\tmediatek,%s0 = <%d>;\n''' %(value.lower(), int(key[3:]))
-            elif value != "IO_CHANNELS" and not (value.startswith("IO_CHANNELS") and len(value) == 12 and int(value[-1]) in range(10)):
+            else:
                 gen_str += '''\t\tmediatek,%s = <%d>;\n''' %(value.lower(), int(key[3:]))
+
+            if value == "ADC_FDD_RF_PARAMS_DYNAMIC_CUSTOM_CH":
+                val = int(key[3:])
 
         gen_str += '''\t\tstatus = \"okay\";\n'''
         gen_str += '''\t};\n'''
-        gen_str += '''};\n\n'''
-
-        gen_str += '''&md_auxadc {\n'''
-
-        if value == "IO_CHANNELS":
-            gen_str += '''\tio-channels = <&auxadc 0>;\n'''
-        elif value.startswith("IO_CHANNELS") and len(value) == 12 and int(value[-1] )in range(10):
-            gen_str += '''\tio-channels = <&auxadc %d>;\n''' % int(value[-1])
-
         gen_str += '''};\n'''
+
+        gen_str += self.fill_extraNode(val)
 
         return gen_str
 
+    def fill_extraNode(self, val):
+        return ''
 
+class AdcObj_MT6785(AdcObj):
 
+    # for the new fearture from Chao Song
+    def fill_extraNode(self, val):
+        str = '''&md_auxadc {\n'''
+        str += '''\tio-channels = <&auxadc %d>;\n''' %(val)
+        str += '''};\n'''
 
-
-
+        return str
 
 

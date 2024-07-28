@@ -13,7 +13,6 @@
 # See http://www.gnu.org/licenses/gpl-2.0.html for more details.
 
 import configparser
-import string
 import xml.dom.minidom
 from itertools import dropwhile
 import re
@@ -23,6 +22,9 @@ from utility.util import sorted_key
 from . ModuleObj import ModuleObj
 from data.Md1EintData import Md1EintData
 from utility.util import LogLevel
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 class Md1EintObj(ModuleObj):
     def __init__(self):

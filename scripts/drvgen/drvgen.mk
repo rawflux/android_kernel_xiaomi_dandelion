@@ -1,13 +1,7 @@
-# Copyright (C) 2016 MediaTek Inc.
+# SPDX-License-Identifier: GPL-2.0
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation.
+# Copyright (c) 2019 MediaTek Inc.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See http://www.gnu.org/licenses/gpl-2.0.html for more details.
 
 ifdef MTK_PLATFORM
 DRVGEN_PATH := drivers/misc/mediatek/dws/$(MTK_PLATFORM)
@@ -27,7 +21,6 @@ endif
 else #DTBO is not enabled, there is only one dtb
 PROJ_DT_NAMES := $(MAIN_DT_NAMES)
 endif #CONFIG_MTK_DTBO_FEATURE
-
 
 MAIN_DTB_NAMES := $(addsuffix .dtb,$(MAIN_DT_NAMES))
 PROJ_DTB_NAMES := $(addsuffix .dtb,$(PROJ_DT_NAMES))
@@ -91,10 +84,10 @@ $(eval my_dtb_id:=$(shell echo $$(($(my_dtb_id)+1))))
 endef
 
 dtbs: $(objtree)/dtboimg.cfg $(objtree)/dtbimg.cfg
+
 $(objtree)/dtboimg.cfg: FORCE
 	rm -f $@.tmp
 	$(foreach f,$(ABS_DTB_FILES),$(call mk_dtboimg_cfg,$(f),$@.tmp))
-	touch $@.tmp
 	if ! cmp -s $@.tmp $@; then \
 		mv $@.tmp $@; \
 	else \
@@ -104,11 +97,13 @@ $(objtree)/dtboimg.cfg: FORCE
 $(objtree)/dtbimg.cfg: FORCE
 	rm -f $@.tmp
 	$(foreach f,$(ABS_DTB2_FILES),$(call mk_dtbimg_cfg,$(f),$@.tmp))
-	touch $@.tmp
 	if ! cmp -s $@.tmp $@; then \
 		mv $@.tmp $@; \
 	else \
 		rm $@.tmp; \
 	fi
 
-endif#MTK_PLATFORM
+else
+dtbo_check:
+
+endif

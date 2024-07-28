@@ -13,7 +13,6 @@
 # See http://www.gnu.org/licenses/gpl-2.0.html for more details.
 
 import re
-import string
 import xml.dom.minidom
 import configparser
 
@@ -22,10 +21,10 @@ from . ModuleObj import ModuleObj
 from utility.util import sorted_key
 from data.I2cData import I2cData
 from data.I2cData import BusData
-#from . ChipObj import ChipObj
+from . import ChipObj
 
 def cmp(a, b):
-    return (a > b) - (a < b) 
+    return (a > b) - (a < b)
 
 class I2cObj(ModuleObj):
     _busList = []

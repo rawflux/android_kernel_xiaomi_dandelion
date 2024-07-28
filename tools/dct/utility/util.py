@@ -13,7 +13,6 @@
 # See http://www.gnu.org/licenses/gpl-2.0.html for more details.
 
 import re
-import string
 
 
 LEVEL_INFO = '[DCT_INFO]: '
@@ -43,5 +42,3 @@ def compare(value):
 
 def sorted_key(lst):
     return sorted(lst, key=compare)
-
-
