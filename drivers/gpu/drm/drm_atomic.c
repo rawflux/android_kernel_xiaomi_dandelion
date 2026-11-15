@@ -1262,6 +1262,119 @@ drm_atomic_get_private_obj_state(struct drm_atomic_state *state,
 EXPORT_SYMBOL(drm_atomic_get_private_obj_state);
 
 /**
+ * drm_atomic_get_old_private_obj_state
+ * @state: global atomic state object
+ * @obj: private_obj to grab
+ *
+ * This function returns the old private object state for the given private_obj,
+ * or NULL if the private_obj is not part of the global atomic state.
+ */
+struct drm_private_state *
+drm_atomic_get_old_private_obj_state(struct drm_atomic_state *state,
+				     struct drm_private_obj *obj)
+{
+	int i;
+
+	for (i = 0; i < state->num_private_objs; i++)
+		if (obj == state->private_objs[i].ptr)
+			return state->private_objs[i].old_state;
+
+	return NULL;
+}
+EXPORT_SYMBOL(drm_atomic_get_old_private_obj_state);
+
+/**
+ * drm_atomic_get_new_private_obj_state
+ * @state: global atomic state object
+ * @obj: private_obj to grab
+ *
+ * This function returns the new private object state for the given private_obj,
+ * or NULL if the private_obj is not part of the global atomic state.
+ */
+struct drm_private_state *
+drm_atomic_get_new_private_obj_state(struct drm_atomic_state *state,
+				     struct drm_private_obj *obj)
+{
+	int i;
+
+	for (i = 0; i < state->num_private_objs; i++)
+		if (obj == state->private_objs[i].ptr)
+			return state->private_objs[i].new_state;
+
+	return NULL;
+}
+EXPORT_SYMBOL(drm_atomic_get_new_private_obj_state);
+
+/**
+ * drm_atomic_get_old_connector_for_encoder - Get old connector for an encoder
+ * @state: Atomic state
+ * @encoder: The encoder to fetch the connector state for
+ *
+ * This function finds and returns the connector that was connected to @encoder
+ * as specified by the @state.
+ *
+ * If there is no connector in @state which previously had @encoder connected to
+ * it, this function will return NULL. While this may seem like an invalid use
+ * case, it is sometimes useful to differentiate commits which had no prior
+ * connectors attached to @encoder vs ones that did (and to inspect their
+ * state). This is especially true in enable hooks because the pipeline has
+ * changed.
+ *
+ * Returns: The old connector connected to @encoder, or NULL if the encoder is
+ * not connected.
+ */
+struct drm_connector *
+drm_atomic_get_old_connector_for_encoder(struct drm_atomic_state *state,
+					 struct drm_encoder *encoder)
+{
+	struct drm_connector_state *conn_state;
+	struct drm_connector *connector;
+	unsigned int i;
+
+	for_each_old_connector_in_state(state, connector, conn_state, i) {
+		if (conn_state->best_encoder == encoder)
+			return connector;
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL(drm_atomic_get_old_connector_for_encoder);
+
+/**
+ * drm_atomic_get_new_connector_for_encoder - Get new connector for an encoder
+ * @state: Atomic state
+ * @encoder: The encoder to fetch the connector state for
+ *
+ * This function finds and returns the connector that will be connected to
+ * @encoder as specified by the @state.
+ *
+ * If there is no connector in @state which will have @encoder connected to it,
+ * this function will return NULL. While this may seem like an invalid use case,
+ * it is sometimes useful to differentiate commits which have no connectors
+ * attached to @encoder vs ones that do (and to inspect their state). This is
+ * especially true in disable hooks because the pipeline will change.
+ *
+ * Returns: The new connector connected to @encoder, or NULL if the encoder is
+ * not connected.
+ */
+struct drm_connector *
+drm_atomic_get_new_connector_for_encoder(struct drm_atomic_state *state,
+					 struct drm_encoder *encoder)
+{
+	struct drm_connector_state *conn_state;
+	struct drm_connector *connector;
+	unsigned int i;
+
+	for_each_new_connector_in_state(state, connector, conn_state, i) {
+		if (conn_state->best_encoder == encoder)
+			return connector;
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL(drm_atomic_get_new_connector_for_encoder);
+
+/**
  * drm_atomic_get_connector_state - get connector state
  * @state: global atomic state object
  * @connector: connector to get state object for
@@ -2419,10 +2532,12 @@ static int prepare_signaling(struct drm_device *dev,
 			struct dma_fence *fence;
 			struct drm_out_fence_state *f;
 
+			ret = -ENOMEM;
+
 			f = krealloc(*fence_state, sizeof(**fence_state) *
 				     (*num_fences + 1), GFP_KERNEL);
 			if (!f)
-				return -ENOMEM;
+				goto err_free_event;
 
 			memset(&f[*num_fences], 0, sizeof(*f));
 
@@ -2431,12 +2546,12 @@ static int prepare_signaling(struct drm_device *dev,
 
 			fence = drm_crtc_create_fence(crtc);
 			if (!fence)
-				return -ENOMEM;
+				goto err_free_event;
 
 			ret = setup_out_fence(&f[(*num_fences)++], fence);
 			if (ret) {
 				dma_fence_put(fence);
-				return ret;
+				goto err_free_event;
 			}
 
 			crtc_state->event->base.fence = fence;
@@ -2492,6 +2607,11 @@ static int prepare_signaling(struct drm_device *dev,
 		return -EINVAL;
 
 	return 0;
+
+err_free_event:
+	drm_event_cancel_free(dev, &crtc_state->event->base);
+	crtc_state->event = NULL;
+	return ret;
 }
 
 static void complete_signaling(struct drm_device *dev,
@@ -2521,6 +2641,8 @@ static void complete_signaling(struct drm_device *dev,
 		 * to prevent a double free in drm_atomic_state_clear.
 		 */
 		if (event && (event->base.fence || event->base.file_priv)) {
+			if (crtc_state->commit && crtc_state->commit->abort_completion)
+				drm_crtc_commit_put(crtc_state->commit);
 			drm_event_cancel_free(dev, &event->base);
 			crtc_state->event = NULL;
 		}
