@@ -343,6 +343,22 @@ int of_reserved_mem_device_init_by_idx(struct device *dev,
 	if (!rmem || !rmem->ops || !rmem->ops->device_init)
 		return -EINVAL;
 
+	/*
+	 * Assigning the same region to the same device again is a no-op, not
+	 * an error: the vendor platform code already assigns memory-region 0
+	 * when it creates the device, and drivers then ask for it once more.
+	 * Since device_init() reports -EBUSY for a second pool, re-running it
+	 * here would fail their probe.
+	 */
+	mutex_lock(&of_rmem_assigned_device_mutex);
+	list_for_each_entry(rd, &of_rmem_assigned_device_list, list) {
+		if (rd->dev == dev && rd->rmem == rmem) {
+			mutex_unlock(&of_rmem_assigned_device_mutex);
+			return 0;
+		}
+	}
+	mutex_unlock(&of_rmem_assigned_device_mutex);
+
 	rd = kmalloc(sizeof(struct rmem_assigned_device), GFP_KERNEL);
 	if (!rd)
 		return -ENOMEM;
