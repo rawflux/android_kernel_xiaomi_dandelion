@@ -1763,6 +1763,18 @@ static void call_console_drivers(const char *ext_text, size_t ext_len,
 	}
 }
 
+#ifdef CONFIG_MTK_AEE_FEATURE
+/* if logbuf lock in aee_wdt flow, zap locks uncondationally  */
+void aee_wdt_zap_locks(void)
+{
+	debug_locks_off();
+	/* If a crash is occurring, make sure we can't deadlock */
+	raw_spin_lock_init(&logbuf_lock);
+	/* And make sure that we print immediately */
+	sema_init(&console_sem, 1);
+}
+#endif
+
 int printk_delay_msec __read_mostly;
 
 static inline void printk_delay(void)

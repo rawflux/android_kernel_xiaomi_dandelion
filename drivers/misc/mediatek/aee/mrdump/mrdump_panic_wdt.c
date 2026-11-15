@@ -144,7 +144,6 @@ static void aee_wdt_dump_backtrace(unsigned int cpu, struct pt_regs *regs)
 	int i;
 	unsigned long high, bottom, fp;
 	struct stackframe cur_frame;
-	struct pt_regs *excp_regs;
 
 	bottom = regs->reg_sp;
 	if (!mrdump_virt_addr_valid(bottom)) {
@@ -349,7 +348,7 @@ void aee_wdt_atf_info(unsigned int cpu, struct pt_regs *regs)
 #endif
 
 	/* avoid lock prove to dump_stack in __debug_locks_off() */
-	xchg(&debug_locks, 0);
+	debug_locks_off();
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_IRQ_DONE);
 
 	dump_emi_outstanding();

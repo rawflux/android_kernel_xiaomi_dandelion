@@ -666,6 +666,9 @@ extern int save_modules(char *mbuf, int mbufsize);
 /* MUST ensure called when preempt disabled already */
 int aee_save_modules(char *mbuf, int mbufsize)
 {
+	/* without loadable modules there is nothing to save */
+	if (!IS_ENABLED(CONFIG_MODULES))
+		return 0;
 	return save_modules(mbuf, mbufsize);
 }
 
